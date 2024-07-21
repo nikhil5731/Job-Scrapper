@@ -18,127 +18,123 @@ def extractAllJobsLinkedIn(urlLink):
     print("-----------LINKEDIN SCRAPING-----------")
     jobsSkip = 0
     data = []
+    totalJobs = 500
+
     # Send a GET request to the URL
-    while jobsSkip <= 100:
-        print(jobsSkip)
+    while jobsSkip <= 500:
         url = urlLink + f"&start={jobsSkip}"
-        try:
-            response = requests.get(url, headers=headers)
 
-            if response.status_code == 400:
-                print(f"Done Scraping: {response.status_code}")
-                break
+        response = requests.get(url, headers=headers)
 
-            if response.status_code == 429:
-                print(
-                    f"Failed to retrieve the webpage. Status code: {response.status_code}"
-                )
-                time.sleep(1)
-                continue
+        if response.status_code == 400:
+            print(f"Done Scraping: {response.status_code}")
+            break
 
-            if response.status_code != 200:
-                print(
-                    f"Failed to retrieve the webpage. Status code: {response.status_code}"
-                )
-                break
+        if response.status_code == 429:
+            print("Failed to get current page! Trying again...")
+            time.sleep(1)
+            continue
 
-            # Check if the request was successful
-            # Get the content of the response
-            html_content = response.content
+        if response.status_code != 200:
+            print(
+                f"Failed to retrieve the webpage. Status code: {response.status_code}"
+            )
+            break
 
-            # Parse the HTML content using BeautifulSoup
-            soup = BeautifulSoup(html_content, "html.parser")
+        # Check if the request was successful
+        # Get the content of the response
+        html_content = response.content
 
-            # print(soup)
-            alljobs_on_this_page = soup.find_all("div", class_="base-card")
+        # Parse the HTML content using BeautifulSoup
+        soup = BeautifulSoup(html_content, "html.parser")
 
-            if len(alljobs_on_this_page) == 0:
-                break
+        alljobs_on_this_page = soup.find_all("div", class_="base-card")
 
-            # data = []
+        if len(alljobs_on_this_page) == 0:
+            break
 
-            if alljobs_on_this_page:
-                for job in alljobs_on_this_page:
-                    temp_data = {}
+        # data = []
 
-                    try:
-                        position = job.find(
-                            "h3", class_="base-search-card__title"
-                        ).get_text(strip=True)
-                    except AttributeError:
-                        position = None
-                        continue
+        if alljobs_on_this_page:
+            for job in alljobs_on_this_page:
+                temp_data = {}
 
-                    try:
-                        link = job.find("a", class_="base-card__full-link").get("href")
-                        moreDetails = extractJob(link)
-                    except AttributeError:
-                        link = "#"
-                        moreDetails = {}
-                        continue
+                try:
+                    position = job.find(
+                        "h3", class_="base-search-card__title"
+                    ).get_text(strip=True)
+                except AttributeError:
+                    position = None
+                    continue
 
-                    try:
-                        logo = job.find("img", class_="artdeco-entity-image").get(
-                            "data-delayed-url"
-                        )
-                    except AttributeError:
-                        logo = None
-                        continue
+                try:
+                    link = job.find("a", class_="base-card__full-link").get("href")
+                    moreDetails = extractJob(link)
+                except AttributeError:
+                    link = "#"
+                    moreDetails = {}
+                    continue
 
-                    try:
-                        company = job.find(
-                            "h4", class_="base-search-card__subtitle"
-                        ).get_text(strip=True)
-                    except AttributeError:
-                        company = None
-                        continue
+                try:
+                    logo = job.find("img", class_="artdeco-entity-image").get(
+                        "data-delayed-url"
+                    )
+                except AttributeError:
+                    logo = None
+                    continue
 
-                    try:
-                        location = job.find(
-                            "span", class_="job-search-card__location"
-                        ).get_text(strip=True)
-                    except AttributeError:
-                        location = None
-                        continue
+                try:
+                    company = job.find(
+                        "h4", class_="base-search-card__subtitle"
+                    ).get_text(strip=True)
+                except AttributeError:
+                    company = None
+                    continue
 
+                try:
+                    location = job.find(
+                        "span", class_="job-search-card__location"
+                    ).get_text(strip=True)
+                except AttributeError:
+                    location = None
+                    continue
+
+                try:
+                    uploadedOn = job.find(
+                        "time", class_="job-search-card__listdate"
+                    ).get_text(strip=True)
+                except AttributeError:
                     try:
                         uploadedOn = job.find(
-                            "time", class_="job-search-card__listdate"
+                            "time", class_="job-search-card__listdate--new"
                         ).get_text(strip=True)
                     except AttributeError:
-                        try:
-                            uploadedOn = job.find(
-                                "time", class_="job-search-card__listdate--new"
-                            ).get_text(strip=True)
-                        except AttributeError:
-                            uploadedOn = None
-                            continue
+                        uploadedOn = None
+                        continue
 
-                    temp_data = {
-                        "position": position,
-                        "company": company,
-                        "logo": logo,
-                        "location": location,
-                        "duration": None,
-                        "stipend": None,
-                        "link": link,
-                        "uploadedOn": uploadedOn,
-                        "opportunityType": None,
-                        "moreDetails": moreDetails,
-                        "jobPortal": "linkedin",
-                    }
+                temp_data = {
+                    "position": position,
+                    "company": company,
+                    "logo": logo,
+                    "location": location,
+                    "duration": None,
+                    "stipend": None,
+                    "link": link,
+                    "uploadedOn": uploadedOn,
+                    "opportunityType": None,
+                    "moreDetails": moreDetails,
+                    "jobPortal": "linkedin",
+                }
 
-                    data.append(temp_data)
+                data.append(temp_data)
 
-                jobsSkip += 10
+            
+            jobsSkip += 10
+            print(f"Jobs Scrapped: {jobsSkip}/{totalJobs}")
 
-            else:
-                print("Not Found!")
-                break
-
-        except requests.exceptions.ProxyError:
-            print("Proxy failed.")
-            return None
+        else:
+            print("Not Found!")
+            break
 
     with open("datas/linkedIn_data.json", "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4)
@@ -151,7 +147,7 @@ def extractJob(url):
     response = requests.get(url, headers=headers)
 
     if response.status_code == 429:
-        print("Too Many Requests! Trying Again")
+        print("Failed to extract a job! Trying Again...")
         time.sleep(1)
         return extractJob(url=url)
 

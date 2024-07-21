@@ -13,7 +13,7 @@ headers = {
     "Referer": "https://www.example.com/",
 }
 
-url = "https://unstop.com/api/public/opportunity/search-result?opportunity=jobs&searchTerm=software%20developerr&oppstatus=open"
+# url = "https://unstop.com/api/public/opportunity/search-result?opportunity=jobs&searchTerm=software%20developerr&oppstatus=open"
 
 
 def format_number_indian(n):
@@ -56,10 +56,12 @@ def extractJob(id):
 
 
 def extractPage(url):
-    from datetime import datetime
-
     response = requests.get(url, headers=headers)
-    jobs = response.json()["data"]["data"]
+    raw_data = response.json()
+    jobs = raw_data["data"]["data"]
+    total_no_of_jobs = raw_data["data"]["total"]
+    per_page = raw_data["data"]["per_page"]
+    current_page = raw_data["data"]["current_page"]
 
     finalData = []
     i = 1
@@ -84,6 +86,7 @@ def extractPage(url):
         finalData.append(tempData)
         i += 1
 
+    print(f"Jobs Scrapped: {current_page * per_page}/{total_no_of_jobs}")
     return finalData
 
 
@@ -93,12 +96,10 @@ def extractAllJobsUnstop(urlLink):
     response = requests.get(urlLink, headers=headers)
     res = response.json()
     length = len(res["data"]["links"])
-    print(length)
 
     finalData = []
 
     for i in range(1, length - 1):
-        print(i)
         tempData = extractPage(res["data"]["links"][i]["url"])
         finalData += tempData
 

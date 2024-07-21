@@ -40,6 +40,7 @@ def time_ago(date):
 
 
 def extractAllJobsNaukri(url):
+    print("-----------NAUKRI.COM SCRAPING-----------")
     extracted_jobs = 0
     total_no_of_jobs = None
     final_data = []
@@ -67,16 +68,14 @@ def extractAllJobsNaukri(url):
 
     with open("datas/naukri_data.json", "w") as f:
         json.dump(final_data, f)
-        print("File written successfully")
 
     return final_data
 
 
 def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
-    print("-----------NAUKRI.COM SCRAPING-----------")
+
     response = requests.get(f"{url}&pageNo={page_no}", headers=headers)
     data = response.json()
-    print(f"Page No {page_no}: {extracted_jobs} - {total_no_of_jobs}")
 
     if total_no_of_jobs is None:
         total_no_of_jobs = data["noOfJobs"]
@@ -97,6 +96,9 @@ def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
         }
         for item in data["jobDetails"]
     ]
+
+    print(f"Jobs Scrapped: {extracted_jobs}/{total_no_of_jobs}")
+    
     return jobs
 
 

@@ -2,21 +2,21 @@ import requests
 from bs4 import BeautifulSoup
 import json
 
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Upgrade-Insecure-Requests": "1",
+    "Referer": "https://www.google.com/",
+}
+
 
 def extractAllJobsInternshala(urlLink):
     print("-----------INTERNSHALA SCRAPING-----------")
     # URL of the page you want to scrape
     url = urlLink
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        "Upgrade-Insecure-Requests": "1",
-        "Referer": "https://www.google.com/",
-    }
 
     # Send a GET request to the URL
     intial_response = requests.get(url, headers=headers)
@@ -34,10 +34,14 @@ def extractAllJobsInternshala(urlLink):
     # Parse the HTML content using BeautifulSoup
     intial_soup = BeautifulSoup(intial_html_content, "html.parser")
 
+    import re
+
     # Find the div with the specified ID
     totalPage = int(intial_soup.find("span", id="total_pages").get_text(strip=True))
-    # print(type(totalPage))
+    totalJobs = intial_soup.find("h1", class_="heading_4_6").get_text(strip=True)
+    totalJobs = re.findall(r"\d+", totalJobs)[0]
     currPage = 1
+    scrappedJobs = 0
 
     data = []
 
@@ -50,7 +54,6 @@ def extractAllJobsInternshala(urlLink):
 
         cards = soup.find_all("div", class_="individual_internship")
         if cards:
-            print(f"Jobs on {currPage} page: ", len(cards))
             for children in cards:
 
                 child = children.find("div", class_="internship_meta")
@@ -148,9 +151,10 @@ def extractAllJobsInternshala(urlLink):
                     "jobPortal": "internshala",
                 }
 
-                # print(temp_data)
-
                 data.append(temp_data)
+
+            scrappedJobs += len(cards)
+            print(f"Jobs Scrapped: {scrappedJobs}/{totalJobs}")
 
         else:
             print("Not Found!")
@@ -164,18 +168,6 @@ def extractAllJobsInternshala(urlLink):
 
 
 def extractJob(url):
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-        "Upgrade-Insecure-Requests": "1",
-        "Referer": "https://www.google.com/",
-    }
-
-    # Send a GET request to the URL
     response = requests.get(url, headers=headers)
 
     if response.status_code != 200:
