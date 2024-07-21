@@ -13,7 +13,7 @@ headers = {
 }
 
 
-def extractAllJobsInternshala(urlLink):
+def extractAllJobsInternshala(urlLink,jobType):
     print("-----------INTERNSHALA SCRAPING-----------")
     # URL of the page you want to scrape
     url = urlLink
@@ -114,7 +114,7 @@ def extractAllJobsInternshala(urlLink):
                     )
 
                     if opportunityType == "":
-                        opportunityType = None
+                        opportunityType = jobType
 
                 except (IndexError, AttributeError) as e:
                     opportunityType = None
@@ -130,11 +130,11 @@ def extractAllJobsInternshala(urlLink):
                                 details.append(detail)
 
                     location = details[0]
-                    duration = details[1]
+                    duration_experience = details[1]
                     stipend = details[2]
 
                 except (IndexError, AttributeError):
-                    location = duration = stipend = None
+                    location = duration_experience = stipend = None
                     continue
 
                 temp_data = {
@@ -142,7 +142,7 @@ def extractAllJobsInternshala(urlLink):
                     "company": company,
                     "logo": logo,
                     "location": location,
-                    "duration": duration,
+                    "duration_experience": duration_experience,
                     "stipend": stipend,
                     "link": "https://internshala.com" + link,
                     "uploadedOn": uploadedOn,

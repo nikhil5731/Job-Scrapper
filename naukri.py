@@ -15,28 +15,51 @@ headers = {
 }
 
 
-def time_ago(date):
-    now = datetime.now()
-    seconds = (now - date).total_seconds()
+def time_ago(date_str):
+    try:
+        from datetime import datetime, timezone
 
-    intervals = [
-        (31536000, "years"),
-        (2592000, "months"),
-        (604800, "weeks"),
-        (86400, "days"),
-        (3600, "hours"),
-        (60, "minutes"),
-        (1, "seconds"),
-    ]
+        if date_str == None:
+            return ""
 
-    for interval, name in intervals:
-        count = seconds // interval
-        if count > 1:
-            return f"{int(count)} {name} ago"
-        if count == 1:
-            return f"1 {name} ago"
+        date_str = date_str.split("T")[0]
+        date_format = "%Y-%m-%d"
+        parsed_date = datetime.strptime(date_str, date_format)
+        parsed_date = parsed_date.replace(tzinfo=timezone.utc)
 
-    return f"{int(seconds)} seconds ago"
+        # Get the current time
+        now = datetime.now(timezone.utc)
+
+        # Calculate the difference between now and the parsed date
+        time_difference = now - parsed_date
+
+        # Define time intervals
+        seconds = time_difference.total_seconds()
+        minutes = seconds / 60
+        hours = minutes / 60
+        days = hours / 24
+        weeks = days / 7
+        months = days / 30
+        years = days / 365
+
+        # Determine the "time ago" format
+        if seconds < 60:
+            return f"{int(seconds)} seconds ago"
+        elif minutes < 60:
+            return f"{int(minutes)} minutes ago"
+        elif hours < 24:
+            return f"{int(hours)} hours ago"
+        elif days < 7:
+            return f"{int(days)} days ago"
+        elif weeks < 4:
+            return f"{int(weeks)} weeks ago"
+        elif months < 12:
+            return f"{int(months)} months ago"
+        else:
+            return f"{int(years)} years ago"
+
+    except Exception as e:
+        return "Invalid date string"
 
 
 def extractAllJobsNaukri(url):
@@ -86,10 +109,14 @@ def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
             "company": item.get("companyName"),
             "logo": item.get("logoPath", "#"),
             "location": item.get("placeholders", [None, None, None])[2].get("label"),
-            "duration": item.get("placeholders", [None, None, None])[0].get("label"),
+            "duration_experience": item.get("placeholders", [None, None, None])[0].get("label"),
             "stipend": item.get("placeholders", [None, None, None])[1].get("label"),
             "link": "https://www.naukri.com" + item.get("jdURL"),
-            "uploadedOn": item.get("createdDate"),
+            "uploadedOn": time_ago(
+                str(datetime.fromtimestamp(item.get("createdDate") / 1000)).split(" ")[
+                    0
+                ]
+            ),
             "opportunityType": item.get("jobType", "Full Time"),
             "moreDetails": extract_jobs(item.get("jobId")),
             "jobPortal": "naukri.com",
@@ -98,7 +125,7 @@ def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
     ]
 
     print(f"Jobs Scrapped: {extracted_jobs}/{total_no_of_jobs}")
-    
+
     return jobs
 
 

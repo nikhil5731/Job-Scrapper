@@ -117,7 +117,7 @@ def extractAllJobsLinkedIn(urlLink):
                     "company": company,
                     "logo": logo,
                     "location": location,
-                    "duration": None,
+                    "duration_experience": None,
                     "stipend": None,
                     "link": link,
                     "uploadedOn": uploadedOn,
@@ -182,8 +182,16 @@ def extractJob(url):
             if len(soup.find_all("span", class_="description__job-criteria-text")) > 1
             else "Not found"
         )
+        duration_experience = (
+            soup.find_all("span", class_="description__job-criteria-text")[0].get_text(
+                strip=True
+            )
+            if len(soup.find_all("span", class_="description__job-criteria-text")) > 1
+            else "Not found"
+        )
     except AttributeError:
         opportunityType = ""
+        duration_experience = ""
 
     deadline = None
     skillsOrTags = []
@@ -193,6 +201,7 @@ def extractJob(url):
         "applications": applications,
         "jobDescription": jobDescription,
         "opportunityType": opportunityType,
+        "duration_experience": duration_experience,
         "deadline": deadline,
         "skillsOrTags": skillsOrTags,
         "eligiblity": eligiblity,

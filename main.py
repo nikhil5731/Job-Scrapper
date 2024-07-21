@@ -6,8 +6,12 @@ from cuvette import extractAllCuvette
 import json
 
 
+# internhala = extractAllJobsInternshala(
+#     "https://internshala.com/jobs/fullstack-development-jobs/","FullTime Job"
+# )
+
 internhala = extractAllJobsInternshala(
-    "https://internshala.com/internships/fullstack-development-internship/"
+    "https://internshala.com/internships/software-development-internship/","Internship"
 )
 
 unstop = extractAllJobsUnstop(
@@ -26,7 +30,7 @@ linkedIn = extractAllJobsLinkedIn(
     "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=Fullstack+Developer&location=India&f_TPR=r2592000"
 )
 
-master = internhala + linkedIn + unstop + naukri + cuvette
+master = internhala  + unstop + naukri + cuvette
 
 with open("datas/master.json", "w", encoding="utf-8") as file:
     json.dump(master, file, indent=4)

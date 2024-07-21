@@ -16,6 +16,53 @@ headers = {
 # url = "https://unstop.com/api/public/opportunity/search-result?opportunity=jobs&searchTerm=software%20developerr&oppstatus=open"
 
 
+def time_ago(date_str):
+    try:
+        from datetime import datetime, timezone
+
+        if date_str == None:
+            return ""
+
+        date_str = date_str.split("T")[0]
+        date_format = "%Y-%m-%d"
+        parsed_date = datetime.strptime(date_str, date_format)
+        parsed_date = parsed_date.replace(tzinfo=timezone.utc)
+
+        # Get the current time
+        now = datetime.now(timezone.utc)
+
+        # Calculate the difference between now and the parsed date
+        time_difference = now - parsed_date
+
+        # Define time intervals
+        seconds = time_difference.total_seconds()
+        minutes = seconds / 60
+        hours = minutes / 60
+        days = hours / 24
+        weeks = days / 7
+        months = days / 30
+        years = days / 365
+
+        # Determine the "time ago" format
+        if seconds < 60:
+            return f"{int(seconds)} seconds ago"
+        elif minutes < 60:
+            return f"{int(minutes)} minutes ago"
+        elif hours < 24:
+            return f"{int(hours)} hours ago"
+        elif days < 7:
+            return f"{int(days)} days ago"
+        elif weeks < 4:
+            return f"{int(weeks)} weeks ago"
+        elif months < 12:
+            return f"{int(months)} months ago"
+        else:
+            return f"{int(years)} years ago"
+
+    except Exception as e:
+        return "Invalid date string"
+
+
 def format_number_indian(n):
     n = str(n)
     if len(n) <= 3:
@@ -40,8 +87,37 @@ def extractJob(id):
 
     viewsCount = data["viewsCount"]
     details = data["details"]
-    jobtype = str(data["job_detail"]["type"]) + "-" + str(data["job_detail"]["timing"])
-    deadline = data["end_date"]
+
+    duration_experienceMin = data["job_detail"].get("min_experience", 0)
+    duration_experienceMax = data["job_detail"].get("max_experience", 0)
+    duration_experience = ""
+
+    if duration_experienceMin:
+        duration_experience = str(duration_experienceMin)
+    else:
+        duration_experience = "0"
+
+    if duration_experienceMax:
+        duration_experience += "-" + str(duration_experienceMax) + " experience"
+    else:
+        duration_experience += " experience"
+
+    minSalary = format_number_indian(data["job_detail"].get("min_salary", 0))
+    maxSalary = format_number_indian(data["job_detail"].get("max_salary", 0))
+    salaryRange = ""
+
+    if minSalary and maxSalary:
+        salaryRange = f"Rs.{minSalary} - Rs.{maxSalary}"
+    elif minSalary:
+        salaryRange = f"Rs.{minSalary}"
+    else:
+        salaryRange = f"Rs.{maxSalary}"
+
+    jobtype = str(data["job_detail"]["type"])
+    if data["job_detail"]["timing"]:
+        jobtype += ", " + str(data["job_detail"]["timing"])
+
+    deadline = data["regnRequirements"]["remain_days"]
     skills = []
     eligibility = data["regnRequirements"]["eligibility"]
 
@@ -50,6 +126,8 @@ def extractJob(id):
         "jobDescription": details,
         "opportunityType": jobtype,
         "deadline": deadline,
+        "duration_experience": duration_experience,
+        "salaryRange": salaryRange,
         "skillsOrTags": skills,
         "eligiblity": eligibility,
     }
@@ -72,12 +150,12 @@ def extractPage(url):
             "company": job.get("organisation", {}).get("name", None),
             "logo": job.get("logoUrl2", None),
             "location": ", ".join(job.get("jobDetail", {}).get("locations", [])),
-            "duration": None,
+            "duration_experience": None,
             "stipend": "Rs. "
             + format_number_indian(job.get("jobDetail", {}).get("max_salary", 0))
             + "(Max)",
             "link": f"https://unstop.com/{job.get('public_url', '')}",
-            "uploadedOn": job.get("start_date", None),
+            "uploadedOn": time_ago(job.get("start_date", None)),
             "opportunityType": job.get("type", None),
             "moreDetails": extractJob(job["id"]),
             "jobPortal": "unstop",
@@ -109,4 +187,3 @@ def extractAllJobsUnstop(urlLink):
     return finalData
 
 
-# extractAllJobsUnstop(url)
