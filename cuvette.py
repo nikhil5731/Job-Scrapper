@@ -92,7 +92,7 @@ def extractAllCuvette(urlLink):
                 "jobPortal": "cuvette",
             },
         )
-        finalData.append(filteredJob)
+        finalData += filteredJob
 
     with open("datas/cuvette_data.json", "w", encoding="utf-8") as file:
         json.dump(finalData, file, indent=4)

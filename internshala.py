@@ -13,7 +13,7 @@ headers = {
 }
 
 
-def extractAllJobsInternshala(urlLink,jobType):
+def extractAllJobsInternshala(urlLink, jobType):
     print("-----------INTERNSHALA SCRAPING-----------")
     # URL of the page you want to scrape
     url = urlLink
@@ -46,7 +46,7 @@ def extractAllJobsInternshala(urlLink,jobType):
     data = []
 
     while currPage <= totalPage:
-        # Send a GET request to the URL
+
         response = requests.get(url + f"/page-{currPage}", headers=headers)
         html_content = response.content
 
@@ -95,7 +95,7 @@ def extractAllJobsInternshala(urlLink,jobType):
                     )
                     if logo == "/static/images/search/placeholder_logo.svg":
                         logo = "#"
-                except (AttributeError, AttributeError) as e:
+                except (AttributeError, AttributeError):
                     logo = "#"
                     continue
 
@@ -104,7 +104,7 @@ def extractAllJobsInternshala(urlLink,jobType):
                         strip=True
                     )
 
-                except (IndexError, AttributeError) as e:
+                except (IndexError, AttributeError):
                     uploadedOn = None
                     continue
 
@@ -116,7 +116,7 @@ def extractAllJobsInternshala(urlLink,jobType):
                     if opportunityType == "":
                         opportunityType = jobType
 
-                except (IndexError, AttributeError) as e:
+                except (IndexError, AttributeError):
                     opportunityType = None
                     continue
 
@@ -161,8 +161,12 @@ def extractAllJobsInternshala(urlLink,jobType):
 
         currPage += 1
 
-    with open("datas/internshala_data.json", "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
+    if jobType == "Internship":
+        with open("datas/internshala_intern_data.json", "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4)
+    else:
+        with open("datas/internshala_jobs_data.json", "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4)
 
     return data
 
@@ -172,29 +176,46 @@ def extractJob(url):
 
     if response.status_code != 200:
         print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
-        return
+        return {}
 
     html_content = response.content
 
     # Parse the HTML content using BeautifulSoup
     soup = BeautifulSoup(html_content, "html.parser")
-    deadline = (
-        soup.find("div", class_="apply_by")
-        .find("div", class_="item_body")
-        .get_text(strip=True)
-    )
+
+    templen = list(soup.find_all("div", class_="item_body"))
+    if len(templen) == 0:
+        return {}
+
+    deadline = templen[len(templen) - 1].get_text(strip=True)
     applications = soup.find("div", class_="applications_message").get_text(strip=True)
     skills = soup.find("div", class_="round_tabs_container")
 
-    skillsOrTags = [
-        child.get_text(strip=True) for child in skills.find_all(recursive=False)
-    ]
+    skillsOrTags = (
+        [child.get_text(strip=True) for child in skills.find_all(recursive=False)]
+        if skills
+        else []
+    )
 
     jobDescription = soup.find("div", class_="text-container").getText()
-    eligiblity = [
-        child.get_text(strip=True)
-        for child in soup.find("div", class_="who_can_apply").find_all(recursive=False)
-    ]
+
+    eligiblity = []
+
+    if soup.find("div", class_="who_can_apply") != None:
+        eligiblity = [
+            child.get_text(strip=True)
+            for child in soup.find("div", class_="who_can_apply").find_all(
+                recursive=False
+            )
+        ]
+
+    if soup.find("div", class_="additional_detail") != None:
+        eligiblity += [
+            child.get_text(strip=True)
+            for child in soup.find("div", class_="additional_detail").find_all(
+                recursive=False
+            )
+        ]
 
     return {
         "deadline": deadline,
@@ -203,8 +224,3 @@ def extractJob(url):
         "jobDescription": jobDescription,
         "eligiblity": eligiblity,
     }
-
-
-# extractAllJobsInternshala(
-#     "https://internshala.com/internships/software-development-internship/"
-# )
