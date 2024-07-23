@@ -1,8 +1,10 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
+from flask_socketio import emit
 
-# const url = "https://www.naukri.com/jobapi/v3/search?searchType=adv&location=india&keyword=fullstack%20developer&experience=0"
+
+# url = "https://www.naukri.com/jobapi/v3/search?searchType=adv&location=india&keyword=fullstack%20developer&experience=0"
 
 headers = {
     "User-Agent": "PostmanRuntime/7.40.0",
@@ -13,6 +15,55 @@ headers = {
     "Appid": "202",
     "Systemid": "Naukri",
 }
+
+
+def extractAllJobsNaukriAPI(url, currPage):
+    # print("-----------NAUKRI.COM SCRAPING-----------")
+
+    try:
+        response = requests.get(f"{url}&pageNo={currPage}", headers=headers)
+        data = response.json()
+
+        total_no_of_jobs = data["noOfJobs"]
+        if total_no_of_jobs == None:
+            emit("response", {"success": False, "message": "Page not found!"})
+            return
+
+        for item in data["jobDetails"]:
+            job_details = {
+                "position": item.get("title"),
+                "company": item.get("companyName"),
+                "logo": item.get("logoPath", "#"),
+                "location": item.get("placeholders", [None, None, None])[2].get(
+                    "label"
+                ),
+                "duration_experience": item.get("placeholders", [None, None, None])[
+                    0
+                ].get("label"),
+                "stipend": item.get("placeholders", [None, None, None])[1].get("label"),
+                "link": "https://www.naukri.com" + item.get("jdURL"),
+                "uploadedOn": time_ago(
+                    str(datetime.fromtimestamp(item.get("createdDate") / 1000)).split(
+                        " "
+                    )[0]
+                ),
+                "opportunityType": item.get("jobType", "Full Time"),
+                "moreDetails": extract_jobs(item.get("jobId")),
+                "jobPortal": "naukri.com",
+            }
+            emit(
+                "response",
+                {
+                    "success": True,
+                    "message": "Unstop Jobs scraped successfully",
+                    "totalJobs": len(data["jobDetails"]),
+                    "jobs": job_details,
+                },
+            )
+
+    except Exception as err:
+        emit("response", {"success": False, "message": "Page not found!"})
+        return
 
 
 def time_ago(date_str):
@@ -62,39 +113,6 @@ def time_ago(date_str):
         return "Invalid date string"
 
 
-def extractAllJobsNaukri(url):
-    print("-----------NAUKRI.COM SCRAPING-----------")
-    extracted_jobs = 0
-    total_no_of_jobs = None
-    final_data = []
-    i = 1
-
-    while True:
-        try:
-            if total_no_of_jobs is None:
-                response = requests.get(url, headers=headers)
-                data = response.json()
-                total_no_of_jobs = data["noOfJobs"]
-
-            if total_no_of_jobs and extracted_jobs >= total_no_of_jobs:
-                break
-
-            job_details = extract_jobs_from_page(
-                url, i, extracted_jobs, total_no_of_jobs
-            )
-            final_data.extend(job_details)
-            extracted_jobs += 20
-            i += 1
-        except Exception as err:
-            print(err)
-            break
-
-    with open("datas/naukri_data.json", "w") as f:
-        json.dump(final_data, f)
-
-    return final_data
-
-
 def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
 
     response = requests.get(f"{url}&pageNo={page_no}", headers=headers)
@@ -109,7 +127,9 @@ def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
             "company": item.get("companyName"),
             "logo": item.get("logoPath", "#"),
             "location": item.get("placeholders", [None, None, None])[2].get("label"),
-            "duration_experience": item.get("placeholders", [None, None, None])[0].get("label"),
+            "duration_experience": item.get("placeholders", [None, None, None])[0].get(
+                "label"
+            ),
             "stipend": item.get("placeholders", [None, None, None])[1].get("label"),
             "link": "https://www.naukri.com" + item.get("jdURL"),
             "uploadedOn": time_ago(
@@ -124,7 +144,7 @@ def extract_jobs_from_page(url, page_no, extracted_jobs, total_no_of_jobs):
         for item in data["jobDetails"]
     ]
 
-    print(f"Jobs Scrapped: {extracted_jobs}/{total_no_of_jobs}")
+    # print(f"Jobs Scrapped: {extracted_jobs}/{total_no_of_jobs}")
 
     return jobs
 
@@ -153,3 +173,36 @@ def extract_jobs(job_id):
         print(error)
 
     return more_details
+
+
+# def extractAllJobsNaukri(url):
+#     print("-----------NAUKRI.COM SCRAPING-----------")
+#     extracted_jobs = 0
+#     total_no_of_jobs = None
+#     final_data = []
+#     i = 1
+
+#     while True:
+#         try:
+#             if total_no_of_jobs is None:
+#                 response = requests.get(url, headers=headers)
+#                 data = response.json()
+#                 total_no_of_jobs = data["noOfJobs"]
+
+#             if total_no_of_jobs and extracted_jobs >= total_no_of_jobs:
+#                 break
+
+#             job_details = extract_jobs_from_page(
+#                 url, i, extracted_jobs, total_no_of_jobs
+#             )
+#             final_data.extend(job_details)
+#             extracted_jobs += 20
+#             i += 1
+#         except Exception as err:
+#             print(err)
+#             break
+
+#     with open("datas/naukri_data.json", "w") as f:
+#         json.dump(final_data, f)
+
+#     return final_data

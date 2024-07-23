@@ -1,7 +1,7 @@
 import requests
-from bs4 import BeautifulSoup
-import json
-import time
+from flask_socketio import emit
+
+# url = "https://unstop.com/api/public/opportunity/search-result?opportunity=jobs&searchTerm=fullstack%20developer&oppstatus=open"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
@@ -13,7 +13,18 @@ headers = {
     "Referer": "https://www.example.com/",
 }
 
-# url = "https://unstop.com/api/public/opportunity/search-result?opportunity=jobs&searchTerm=software%20developerr&oppstatus=open"
+
+def extractAllJobsUnstopAPI(urlLink, currPage):
+    # URL of the page you want to scrape
+    # print("-----------UNSTOP SCRAPING-----------")
+    response = requests.get(urlLink, headers=headers)
+    res = response.json()
+    totalPage = res["data"]["last_page"]
+    if currPage > totalPage:
+        emit("response", {"success": False, "message": "Page not found!"})
+        return
+
+    tempData = extractPage(res["data"]["links"][currPage]["url"])
 
 
 def time_ago(date_str):
@@ -138,14 +149,11 @@ def extractPage(url):
     raw_data = response.json()
     jobs = raw_data["data"]["data"]
     total_no_of_jobs = raw_data["data"]["total"]
-    per_page = raw_data["data"]["per_page"]
-    current_page = raw_data["data"]["current_page"]
 
     finalData = []
-    i = 1
 
     for job in jobs:
-        tempData = {
+        job_data = {
             "position": job.get("title", None),
             "company": job.get("organisation", {}).get("name", None),
             "logo": job.get("logoUrl2", None),
@@ -161,29 +169,35 @@ def extractPage(url):
             "jobPortal": "unstop",
         }
 
-        finalData.append(tempData)
-        i += 1
+        emit(
+            "response",
+            {
+                "success": True,
+                "message": "Unstop Jobs scraped successfully",
+                "totalJobs": len(jobs),
+                "jobs": job_data,
+            },
+        )
+        finalData.append(job_data)
 
-    print(f"Jobs Scrapped: {current_page * per_page}/{total_no_of_jobs}")
+    # print(f"Jobs Scrapped: {len(jobs)}/{total_no_of_jobs}")
     return finalData
 
 
-def extractAllJobsUnstop(urlLink):
-    # URL of the page you want to scrape
-    print("-----------UNSTOP SCRAPING-----------")
-    response = requests.get(urlLink, headers=headers)
-    res = response.json()
-    length = len(res["data"]["links"])
+# def extractAllJobsUnstop(urlLink):
+#     # URL of the page you want to scrape
+#     print("-----------UNSTOP SCRAPING-----------")
+#     response = requests.get(urlLink, headers=headers)
+#     res = response.json()
+#     length = len(res["data"]["links"])
 
-    finalData = []
+#     finalData = []
 
-    for i in range(1, length - 1):
-        tempData = extractPage(res["data"]["links"][i]["url"])
-        finalData += tempData
+#     for i in range(1, length - 1):
+#         tempData = extractPage(res["data"]["links"][i]["url"])
+#         finalData += tempData
 
-    with open("datas/unstop_data.json", "w", encoding="utf-8") as file:
-        json.dump(finalData, file, indent=4)
+#     with open("datas/unstop_data.json", "w", encoding="utf-8") as file:
+#         json.dump(finalData, file, indent=4)
 
-    return finalData
-
-
+#     return finalData

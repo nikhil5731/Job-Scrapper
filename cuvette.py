@@ -1,6 +1,7 @@
 import requests
-import json
+from flask_socketio import emit
 
+# url = "https://api.cuvette.tech/api/v1/externaljobs?search=internship,software"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
@@ -11,6 +12,53 @@ headers = {
     "X-Requested-With": "XMLHttpRequest",
     "Referer": "https://www.google.com/",
 }
+
+
+def extractAllCuvetteAPI(urlLink, currPage):
+    # print("-----------CUVETTE SCRAPING-----------")
+    response = requests.get(urlLink, headers)
+    raw_data = response.json()
+
+    per_page = 10
+
+    jobArray = raw_data["data"][(currPage - 1) * per_page : currPage * per_page]
+
+    if jobArray == None or len(jobArray) == 0:
+        emit("response", {"success": False, "message": "Page not found!"})
+        return
+
+    for job in jobArray:
+        filteredJob = {
+            "position": job["title"],
+            "company": job["companyName"],
+            "logo": job["imageUrl"],
+            "location": job["location"],
+            "duration_experience": job["requiredExperience"],
+            "stipend": job["salary"],
+            "link": job["redirectLink"],
+            "uploadedOn": time_ago(job["createdAt"]),
+            "opportunityType": job["type"],
+            "moreDetails": {
+                "deadline": None,
+                "applications": job["count"],
+                "skillsOrTags": job["skills"].split(", "),
+                "jobDescription": job["aboutJob"],
+                "eligiblity": job["aboutJob"],
+            },
+            "jobPortal": "cuvette",
+        }
+
+        emit(
+            "response",
+            {
+                "success": True,
+                "message": "Unstop Jobs scraped successfully",
+                "totalJobs": len(jobArray),
+                "jobs": filteredJob,
+            },
+        )
+
+    return
 
 
 def time_ago(date_str):
@@ -60,41 +108,41 @@ def time_ago(date_str):
         return "Invalid date string"
 
 
-def extractAllCuvette(urlLink):
-    print("-----------CUVETTE SCRAPING-----------")
-    response = requests.get(urlLink, headers)
-    raw_data = response.json()
-    totalJobs = raw_data["count"]
-    jobArray = raw_data["data"]
+# def extractAllCuvette(urlLink):
+#     print("-----------CUVETTE SCRAPING-----------")
+#     response = requests.get(urlLink, headers)
+#     raw_data = response.json()
+#     totalJobs = raw_data["count"]
+#     jobArray = raw_data["data"]
 
-    finalData = []
+#     finalData = []
 
-    for job in jobArray:
-        filteredJob = (
-            {
-                "position": job["title"],
-                "company": job["companyName"],
-                "logo": job["imageUrl"],
-                "location": job["location"],
-                "duration_experience": job["requiredExperience"],
-                "stipend": job["salary"],
-                "link": job["redirectLink"],
-                "uploadedOn": time_ago(job["createdAt"]),
-                "opportunityType": job["type"],
-                "moreDetails": {
-                    "deadline": None,
-                    "applications": job["count"],
-                    "skillsOrTags": job["skills"].split(", "),
-                    "jobDescription": job["aboutJob"],
-                    "eligiblity": job["aboutJob"],
-                },
-                "jobPortal": "cuvette",
-            },
-        )
-        finalData += filteredJob
+#     for job in jobArray:
+#         filteredJob = (
+#             {
+#                 "position": job["title"],
+#                 "company": job["companyName"],
+#                 "logo": job["imageUrl"],
+#                 "location": job["location"],
+#                 "duration_experience": job["requiredExperience"],
+#                 "stipend": job["salary"],
+#                 "link": job["redirectLink"],
+#                 "uploadedOn": time_ago(job["createdAt"]),
+#                 "opportunityType": job["type"],
+#                 "moreDetails": {
+#                     "deadline": None,
+#                     "applications": job["count"],
+#                     "skillsOrTags": job["skills"].split(", "),
+#                     "jobDescription": job["aboutJob"],
+#                     "eligiblity": job["aboutJob"],
+#                 },
+#                 "jobPortal": "cuvette",
+#             },
+#         )
+#         finalData += filteredJob
 
-    with open("datas/cuvette_data.json", "w", encoding="utf-8") as file:
-        json.dump(finalData, file, indent=4)
+#     with open("datas/cuvette_data.json", "w", encoding="utf-8") as file:
+#         json.dump(finalData, file, indent=4)
 
-    print(f"Jobs Scrapped: {totalJobs}/{totalJobs}")
-    return finalData
+#     print(f"Jobs Scrapped: {totalJobs}/{totalJobs}")
+#     return finalData

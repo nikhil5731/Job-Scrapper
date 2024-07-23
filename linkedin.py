@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
+from flask_socketio import emit
+
+# url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=Fullstack+Developer&location=India&f_TPR=r2592000"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
@@ -14,6 +17,41 @@ headers = {
 }
 
 
+def extractAllJobsLinkedInAPI(urlLink, currPage):
+    # print("-----------LINKEDIN SCRAPING-----------")
+    jobsSkip = 10
+    if (jobsSkip * (currPage - 1)) >= 1000:
+        emit("response", {"success": False, "message": "Page Not Found!"})
+        return
+
+    url = f"{urlLink}&start={jobsSkip*(currPage-1)}"
+    html_content = make_request(url)
+
+    if html_content is None:
+        emit("response", {"success": False, "message": "Page Not Found!"})
+        return
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    alljobs_on_this_page = soup.find_all("div", class_="base-card")
+
+    if not alljobs_on_this_page:
+        emit("response", {"success": False, "message": "Page Not Found!"})
+        return
+
+    for job in alljobs_on_this_page:
+        job_data = parse_job_data(job)
+        if job_data:
+            emit(
+                "response",
+                {
+                    "success": True,
+                    "totalJobs": len(alljobs_on_this_page),
+                    "jobs": job_data,
+                    "message": "Internshala Jobs scraped successfully",
+                },
+            )
+
+
 def make_request(url):
     response = requests.get(url, headers=headers)
     if response.status_code == 429:
@@ -21,7 +59,7 @@ def make_request(url):
         time.sleep(1)
         return make_request(url)
     if response.status_code != 200:
-        print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        # print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
         return None
     return response.content
 
@@ -58,12 +96,12 @@ def extractJob(url):
     response = requests.get(url, headers=headers)
 
     if response.status_code == 429:
-        print("Failed to extract a job! Trying Again...")
+        # print("Failed to extract a job! Trying Again...")
         time.sleep(1)
         return extractJob(url=url)
 
     if response.status_code != 200:
-        print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        # print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
         return {}
 
     html_content = response.content
@@ -124,34 +162,31 @@ def save_data_to_file(data):
         json.dump(data, file, indent=4)
 
 
-def extractAllJobsLinkedIn(urlLink):
-    print("-----------LINKEDIN SCRAPING-----------")
-    jobsSkip = 0
-    data = []
-    totalJobs = 100
+# def extractAllJobsLinkedIn(urlLink):
+#     print("-----------LINKEDIN SCRAPING-----------")
+#     jobsSkip = 0
+#     data = []
+#     totalJobs = 100
 
-    while jobsSkip <= totalJobs:
-        url = f"{urlLink}&start={jobsSkip}"
-        html_content = make_request(url)
-        if html_content is None:
-            break
+#     while jobsSkip <= totalJobs:
+#         url = f"{urlLink}&start={jobsSkip}"
+#         html_content = make_request(url)
+#         if html_content is None:
+#             break
 
-        soup = BeautifulSoup(html_content, "html.parser")
-        alljobs_on_this_page = soup.find_all("div", class_="base-card")
+#         soup = BeautifulSoup(html_content, "html.parser")
+#         alljobs_on_this_page = soup.find_all("div", class_="base-card")
 
-        if not alljobs_on_this_page:
-            break
+#         if not alljobs_on_this_page:
+#             break
 
-        for job in alljobs_on_this_page:
-            job_data = parse_job_data(job)
-            if job_data:
-                data.append(job_data)
+#         for job in alljobs_on_this_page:
+#             job_data = parse_job_data(job)
+#             if job_data:
+#                 data.append(job_data)
 
-        print(f"Jobs Scrapped: {jobsSkip}/{totalJobs}")
-        jobsSkip += 10
+#         print(f"Jobs Scrapped: {jobsSkip}/{totalJobs}")
+#         jobsSkip += 10
 
-    save_data_to_file(data)
-    return data
-
-
-# The extractJob function remains unchanged
+#     save_data_to_file(data)
+#     return data

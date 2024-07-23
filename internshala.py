@@ -1,7 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
-import json
+from flask_socketio import emit
 import re
+
+
+# internhala_jobs = extractAllJobsInternshala(
+#         "https://internshala.com/jobs/fullstack-development-jobs/", "FullTime"
+#     )
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -14,10 +19,60 @@ headers = {
 }
 
 
+def extractAllJobsInternshalaAPI(url, jobType, currPage):
+    # print("-----------INTERNSHALA SCRAPING-----------")
+
+    if not jobType:
+        emit("response", {"success": False, "message": "jobType not found!"})
+        return
+
+    if not url:
+        emit("response", {"success": False, "message": "url not found!"})
+        return
+
+    initial_html_content = fetch_page(url)
+
+    if initial_html_content is None:
+        emit("response", {"success": False, "message": "Page not found!"})
+        return
+
+    initial_soup = BeautifulSoup(initial_html_content, "html.parser")
+    totalPage = parse_total_jobs(initial_soup)
+
+    if totalPage < currPage:
+        emit("response", {"success": False, "message": "Page not found!"})
+        return
+
+    html_content = fetch_page(url + f"/page-{currPage}")
+    if html_content is None:
+        return
+
+    soup = BeautifulSoup(html_content, "html.parser")
+    cards = soup.find_all("div", class_="individual_internship")
+    if cards:
+        for children in cards:
+            # child = children.find("div", class_="internship_meta")
+            job_data = extract_job_details(children, jobType)
+            if job_data:
+                emit(
+                    "response",
+                    {
+                        "success": True,
+                        "totalJobs": len(cards),
+                        "jobs": job_data,
+                        "message": "Internshala Jobs scraped successfully",
+                    },
+                )
+
+    else:
+        emit("response", {"success": False, "message": "Page Not Found!"})
+        return
+
+
 def fetch_page(url):
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
-        print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        # print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
         return None
     return response.content
 
@@ -29,7 +84,7 @@ def parse_total_jobs(soup):
             0
         ]
     )
-    return totalPage, totalJobs
+    return totalPage
 
 
 def extract_job_details(child, jobType):
@@ -37,7 +92,7 @@ def extract_job_details(child, jobType):
     try:
         position = child.find("h3", class_="job-internship-name").get_text(strip=True)
         link = child.get("data-href")
-        
+
         moreDetails = extractJob("https://internshala.com" + link) if link else {}
         company = child.find("p", class_="company-name").get_text(strip=True)
         logo = child.find("div", class_="internship_logo").find("img").get("src", "#")
@@ -77,51 +132,6 @@ def extract_details(child):
         return details[0], details[1], details[2]
     except (IndexError, AttributeError):
         return None, None, None
-
-
-def extractAllJobsInternshala(urlLink, jobType):
-    print("-----------INTERNSHALA SCRAPING-----------")
-    url = urlLink
-    initial_html_content = fetch_page(url)
-    if initial_html_content is None:
-        return
-
-    initial_soup = BeautifulSoup(initial_html_content, "html.parser")
-    totalPage, totalJobs = parse_total_jobs(initial_soup)
-    currPage = 1
-    scrappedJobs = 0
-    data = []
-
-    while currPage <= totalPage:
-        html_content = fetch_page(url + f"/page-{currPage}")
-        if html_content is None:
-            break
-
-        soup = BeautifulSoup(html_content, "html.parser")
-        cards = soup.find_all("div", class_="individual_internship")
-        if cards:
-            for children in cards:
-                # child = children.find("div", class_="internship_meta")
-                job_data = extract_job_details(children, jobType)
-                if job_data:
-                    data.append(job_data)
-
-            scrappedJobs += len(cards)
-            print(f"Jobs Scrapped: {scrappedJobs}/{totalJobs}")
-        else:
-            print("Not Found!")
-
-        currPage += 1
-
-    output_file = (
-        "datas/internshala_intern_data.json"
-        if jobType == "Internship"
-        else "datas/internshala_jobs_data.json"
-    )
-    with open(output_file, "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
-
-    return data
 
 
 def extractJob(url):
@@ -170,3 +180,46 @@ def extract_eligibility(soup):
     return eligiblity
 
 
+# def extractAllJobsInternshala(urlLink, jobType):
+#     print("-----------INTERNSHALA SCRAPING-----------")
+#     url = urlLink
+#     initial_html_content = fetch_page(url)
+#     if initial_html_content is None:
+#         return
+
+#     initial_soup = BeautifulSoup(initial_html_content, "html.parser")
+#     totalPage, totalJobs = parse_total_jobs(initial_soup)
+#     currPage = 1
+#     scrappedJobs = 0
+#     data = []
+
+#     while currPage <= totalPage:
+#         html_content = fetch_page(url + f"/page-{currPage}")
+#         if html_content is None:
+#             break
+
+#         soup = BeautifulSoup(html_content, "html.parser")
+#         cards = soup.find_all("div", class_="individual_internship")
+#         if cards:
+#             for children in cards:
+#                 # child = children.find("div", class_="internship_meta")
+#                 job_data = extract_job_details(children, jobType)
+#                 if job_data:
+#                     data.append(job_data)
+
+#             scrappedJobs += len(cards)
+#             print(f"Jobs Scrapped: {scrappedJobs}/{totalJobs}")
+#         else:
+#             print("Not Found!")
+
+#         currPage += 1
+
+#     output_file = (
+#         "datas/internshala_intern_data.json"
+#         if jobType == "Internship"
+#         else "datas/internshala_jobs_data.json"
+#     )
+#     with open(output_file, "w", encoding="utf-8") as file:
+#         json.dump(data, file, indent=4)
+
+#     return data
