@@ -14,132 +14,43 @@ headers = {
 }
 
 
-def extractAllJobsLinkedIn(urlLink):
-    print("-----------LINKEDIN SCRAPING-----------")
-    jobsSkip = 0
-    data = []
-    totalJobs = 500
+def make_request(url):
+    response = requests.get(url, headers=headers)
+    if response.status_code == 429:
+        print("Rate limit exceeded. Retrying...")
+        time.sleep(1)
+        return make_request(url)
+    if response.status_code != 200:
+        print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+        return None
+    return response.content
 
-    # Send a GET request to the URL
-    while jobsSkip <= 500:
-        url = urlLink + f"&start={jobsSkip}"
 
-        response = requests.get(url, headers=headers)
+def parse_job_data(job):
+    temp_data = {}
+    try:
+        temp_data["position"] = job.find(
+            "h3", class_="base-search-card__title"
+        ).get_text(strip=True)
+        temp_data["link"] = job.find("a", class_="base-card__full-link").get("href")
+        temp_data["logo"] = job.find("img", class_="artdeco-entity-image").get(
+            "data-delayed-url"
+        )
+        temp_data["company"] = job.find(
+            "h4", class_="base-search-card__subtitle"
+        ).get_text(strip=True)
+        temp_data["location"] = job.find(
+            "span", class_="job-search-card__location"
+        ).get_text(strip=True)
+        temp_data["uploadedOn"] = job.find(
+            "time", class_="job-search-card__listdate"
+        ).get_text(strip=True)
+    except AttributeError:
+        return None  # Return None if any data is missing
 
-        if response.status_code == 400:
-            print(f"Done Scraping: {response.status_code}")
-            break
-
-        if response.status_code == 429:
-            print("Failed to get current page! Trying again...")
-            time.sleep(1)
-            continue
-
-        if response.status_code != 200:
-            print(
-                f"Failed to retrieve the webpage. Status code: {response.status_code}"
-            )
-            break
-
-        # Check if the request was successful
-        # Get the content of the response
-        html_content = response.content
-
-        # Parse the HTML content using BeautifulSoup
-        soup = BeautifulSoup(html_content, "html.parser")
-
-        alljobs_on_this_page = soup.find_all("div", class_="base-card")
-
-        if len(alljobs_on_this_page) == 0:
-            break
-
-        # data = []
-
-        if alljobs_on_this_page:
-            for job in alljobs_on_this_page:
-                temp_data = {}
-
-                try:
-                    position = job.find(
-                        "h3", class_="base-search-card__title"
-                    ).get_text(strip=True)
-                except AttributeError:
-                    position = None
-                    continue
-
-                try:
-                    link = job.find("a", class_="base-card__full-link").get("href")
-                    moreDetails = extractJob(link)
-                except AttributeError:
-                    link = "#"
-                    moreDetails = {}
-                    continue
-
-                try:
-                    logo = job.find("img", class_="artdeco-entity-image").get(
-                        "data-delayed-url"
-                    )
-                except AttributeError:
-                    logo = None
-                    continue
-
-                try:
-                    company = job.find(
-                        "h4", class_="base-search-card__subtitle"
-                    ).get_text(strip=True)
-                except AttributeError:
-                    company = None
-                    continue
-
-                try:
-                    location = job.find(
-                        "span", class_="job-search-card__location"
-                    ).get_text(strip=True)
-                except AttributeError:
-                    location = None
-                    continue
-
-                try:
-                    uploadedOn = job.find(
-                        "time", class_="job-search-card__listdate"
-                    ).get_text(strip=True)
-                except AttributeError:
-                    try:
-                        uploadedOn = job.find(
-                            "time", class_="job-search-card__listdate--new"
-                        ).get_text(strip=True)
-                    except AttributeError:
-                        uploadedOn = None
-                        continue
-
-                temp_data = {
-                    "position": position,
-                    "company": company,
-                    "logo": logo,
-                    "location": location,
-                    "duration_experience": None,
-                    "stipend": None,
-                    "link": link,
-                    "uploadedOn": uploadedOn,
-                    "opportunityType": None,
-                    "moreDetails": moreDetails,
-                    "jobPortal": "linkedin",
-                }
-
-                data.append(temp_data)
-
-            
-            jobsSkip += 10
-            print(f"Jobs Scrapped: {jobsSkip}/{totalJobs}")
-
-        else:
-            print("Not Found!")
-            break
-
-    with open("datas/linkedIn_data.json", "w", encoding="utf-8") as file:
-        json.dump(data, file, indent=4)
-
-    return data
+    temp_data["moreDetails"] = extractJob(temp_data["link"])
+    temp_data["jobPortal"] = "linkedin"
+    return temp_data
 
 
 def extractJob(url):
@@ -208,10 +119,39 @@ def extractJob(url):
     }
 
 
-aWeekAgo = "r604800"
-aDayAgo = "r86400"
-aMonthAgo = "r2592000"
+def save_data_to_file(data):
+    with open("datas/linkedIn_data.json", "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4)
 
-# extractAllJobsLinkedIn(
-#     "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=Software+Developer&location=India&f_TPR=r2592000"
-# )
+
+def extractAllJobsLinkedIn(urlLink):
+    print("-----------LINKEDIN SCRAPING-----------")
+    jobsSkip = 0
+    data = []
+    totalJobs = 100
+
+    while jobsSkip <= totalJobs:
+        url = f"{urlLink}&start={jobsSkip}"
+        html_content = make_request(url)
+        if html_content is None:
+            break
+
+        soup = BeautifulSoup(html_content, "html.parser")
+        alljobs_on_this_page = soup.find_all("div", class_="base-card")
+
+        if not alljobs_on_this_page:
+            break
+
+        for job in alljobs_on_this_page:
+            job_data = parse_job_data(job)
+            if job_data:
+                data.append(job_data)
+
+        print(f"Jobs Scrapped: {jobsSkip}/{totalJobs}")
+        jobsSkip += 10
+
+    save_data_to_file(data)
+    return data
+
+
+# The extractJob function remains unchanged

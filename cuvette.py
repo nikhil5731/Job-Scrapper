@@ -1,7 +1,6 @@
 import requests
 import json
 
-# url = "https://api.cuvette.tech/api/v1/externaljobs?search=internship,software"
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15",
@@ -99,6 +98,3 @@ def extractAllCuvette(urlLink):
 
     print(f"Jobs Scrapped: {totalJobs}/{totalJobs}")
     return finalData
-
-
-# extractAllCuvette(url)

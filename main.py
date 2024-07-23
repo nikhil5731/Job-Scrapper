@@ -1,12 +1,13 @@
-from internshala import extractAllJobsInternshala
+from internshala2 import extractAllJobsInternshala
 from unstop import extractAllJobsUnstop
-from linkedin import extractAllJobsLinkedIn
+from linkedkin2 import extractAllJobsLinkedIn
 from naukri import extractAllJobsNaukri
 from cuvette import extractAllCuvette
-import json
+import json, time
 
 
 def extractAllJobs():
+    start_time = time.time()
 
     master = []
 
@@ -46,7 +47,10 @@ def extractAllJobs():
     )
 
     master += linkedIn
-    
+
+    end_time = time.time()
+    print(f"Time taken to run extractAllJobs: {end_time - start_time:.2f} seconds")
+
     with open("datas/master.json", "w", encoding="utf-8") as file:
         json.dump(master, file, indent=4)
 

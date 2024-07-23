@@ -153,8 +153,3 @@ def extract_jobs(job_id):
         print(error)
 
     return more_details
-
-
-# extractAllJobsNaukri(
-#     "https://www.naukri.com/jobapi/v3/search?searchType=adv&location=india&keyword=fullstack%20developer&experience=0"
-# )
