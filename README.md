@@ -15,6 +15,6 @@ Scrapping various Job Portals like Naukri.com, Unstop, LinkedIn, Cuvette, and In
 To run tests, run the following command
 
 ```
-python main.py
+python api.py
 ```
 
