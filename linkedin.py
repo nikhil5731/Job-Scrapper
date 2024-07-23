@@ -25,7 +25,7 @@ def extractAllJobsLinkedInAPI(urlLink, currPage):
         return
 
     url = f"{urlLink}&start={jobsSkip*(currPage-1)}"
-    html_content = make_request(url)
+    html_content = make_request(url, 1)
 
     if html_content is None:
         emit("response", {"success": False, "message": "Page Not Found!"})
@@ -52,15 +52,21 @@ def extractAllJobsLinkedInAPI(urlLink, currPage):
             )
 
 
-def make_request(url):
+def make_request(url, numberOfRequests):
+
     response = requests.get(url, headers=headers)
+
     if response.status_code == 429:
+        if numberOfRequests >= 10:
+            return None
         print("Rate limit exceeded. Retrying...")
-        time.sleep(1)
-        return make_request(url)
+        time.sleep(2)
+        return make_request(url, numberOfRequests + 1)
+
     if response.status_code != 200:
         # print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
         return None
+
     return response.content
 
 
@@ -86,19 +92,21 @@ def parse_job_data(job):
     except AttributeError:
         return None  # Return None if any data is missing
 
-    temp_data["moreDetails"] = extractJob(temp_data["link"])
+    temp_data["moreDetails"] = extractJob(temp_data["link"], 1)
     temp_data["jobPortal"] = "linkedin"
     return temp_data
 
 
-def extractJob(url):
+def extractJob(url, numberOfRequests):
     # Send a GET request to the URL
     response = requests.get(url, headers=headers)
 
     if response.status_code == 429:
         # print("Failed to extract a job! Trying Again...")
-        time.sleep(1)
-        return extractJob(url=url)
+        if numberOfRequests >= 10:
+            return {}
+        time.sleep(2)
+        return extractJob(url, numberOfRequests + 1)
 
     if response.status_code != 200:
         # print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
