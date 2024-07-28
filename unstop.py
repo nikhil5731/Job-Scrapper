@@ -130,7 +130,7 @@ def extractJob(id):
 
     deadline = data["regnRequirements"]["remain_days"]
     skills = []
-    eligibility = data["regnRequirements"]["eligibility"]
+    eligibility = []
 
     return {
         "applications": str(viewsCount) + " views",

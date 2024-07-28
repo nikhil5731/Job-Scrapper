@@ -1,0 +1,25 @@
+#root {
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* For Chrome, Edge, and Safari */
+::-webkit-scrollbar {
+  width: 10px; /* width of the scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* background of the scrollbar track */
+  border-radius: 10px; /* round the edges of the track */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #1f2937; /* color of the scrollbar handle */
+  border-radius: 10px; /* round the edges of the handle */
+  border: 1px solid #f1f1f1; /* space around the handle */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #217dff; /* color of the handle when hovered */
+}
+

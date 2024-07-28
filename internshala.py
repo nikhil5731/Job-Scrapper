@@ -87,6 +87,20 @@ def parse_total_jobs(soup):
     return totalPage
 
 
+def stipendHelper(text):
+
+    # Find the last occurrence of the "₹" symbol
+    last_rupee_index = text.rfind("₹")
+
+    # Find the first occurrence of "/year" after the last "₹"
+    end_index = text.find("/year", last_rupee_index)
+
+    # Extract the value between the last "₹" and "/year"
+    value_between = text[last_rupee_index:end_index].strip()
+
+    return value_between + "/year"  # Output: ₹ 7,00,000 - 8,00,000
+
+
 def extract_job_details(child, jobType):
     temp_data = {}
     try:
@@ -101,7 +115,8 @@ def extract_job_details(child, jobType):
             child.find("div", class_="gray-labels").get_text(strip=True) or jobType
         )
         location, duration_experience, stipend = extract_details(child)
-
+        if jobType == "FullTime":
+            stipend = stipendHelper(stipend)
         temp_data = {
             "position": position,
             "company": company,

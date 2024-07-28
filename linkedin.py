@@ -59,7 +59,7 @@ def make_request(url, numberOfRequests):
     if response.status_code == 429:
         if numberOfRequests >= 10:
             return None
-        print("Rate limit exceeded. Retrying...")
+        # print("Rate limit exceeded. Retrying...")
         time.sleep(2)
         return make_request(url, numberOfRequests + 1)
 

@@ -22,7 +22,7 @@ def index():
 @socketio.on("message")
 def message(message):
     print("Received message: " + str(message))
-    emit("response", message)
+    emit("response", {"heola":message})
 
 
 @socketio.on("scrapeInternhsala")
