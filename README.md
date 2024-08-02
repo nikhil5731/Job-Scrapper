@@ -12,6 +12,7 @@ Scrapping various Job Portals like Naukri.com, Unstop, LinkedIn, Cuvette, and In
 ## Tech Stack
 
 **Server:** Python, Beautifulsoup, Requests and Socket.io
+
 **Frontend:** React.js and Socket.io
 
 
